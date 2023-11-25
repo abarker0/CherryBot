@@ -16,26 +16,29 @@ TODO:
 
 import discord
 from discord.ext import commands
-from consts import *
+import consts
 
 tokfile = open("token.txt", "r")
 TOKEN = tokfile.readline()
 tokfile.close()
 
-def getPrefix(bot, message):
-	prefixes = ["!"]
-	return prefixes
+# Function from @EvieePy on GitHub
+def get_prefix(bot, message):
+    """A callable Prefix for our bot. This could be edited to allow per server prefixes."""
 
-initialExtensions = [
-	"cogs.activity"
-]
+    prefixes = ['!']
+
+    # Check to see if we are outside of a guild. e.g DM's etc.
+    if not message.guild:
+        # Only allow ! to be used in DMs
+        return '!'
+
+    # If we are in a guild, we allow for the user to mention us or use any of the prefixes in our list.
+    return commands.when_mentioned_or(*prefixes)(bot, message)
+
 
 intents = discord.Intents.all()
-bot = commands.Bot(command_prefix=getPrefix, intents=intents, description="A bot that wraps a jukebox and Big Brother into one!")
-
-if __name__ == "__main__":
-	for extension in initialExtensions:
-		bot.load_extension(extension)
+bot = commands.Bot(command_prefix=get_prefix, intents=intents, description="A bot that wraps a jukebox and Big Brother into one!")
 	
 bot.remove_command("help")
 
@@ -43,8 +46,16 @@ bot.remove_command("help")
 @bot.event
 async def on_ready():
 	print(f'\n\nLogged in as: {bot.user.name} - {bot.user.id}\nVersion: {discord.__version__}\n')
-	await bot.change_presence(activity=discord.Game(name="?help"))
+	await bot.change_presence(activity=discord.Game(name="!help"))
 	print(f'Successfully logged in!')
+
+@bot.event
+async def setup_hook():
+	initialExtensions = [
+		"cogs.activity"
+	]
+	for extension in initialExtensions:
+		await bot.load_extension(extension)
 
 @bot.command()
 async def help(ctx, *args):
@@ -58,5 +69,9 @@ async def help(ctx, *args):
 		embedVar.add_field(name="Usage", value="`!active`", inline=False)
 		await ctx.send(embed=embedVar)
 		return
+	
+@bot.command()
+async def pong(ctx):
+	await ctx.send("Ping!")
 
-bot.run(TOKEN, bot=True, reconnect=True)
+bot.run(TOKEN, reconnect=True)

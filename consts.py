@@ -1,8 +1,10 @@
 import json
+import os
 
 DT_FORMAT = "%m/%d/%Y at %H:00" #01/01/20 01
 EMBED_COLOR = 0xe620c1
-BARKER = ***REMOVED***
+ACTIVITY_DATA = os.path.abspath('../data/activity.json')
+
 
 def getData(file):
 	with open(file, "r") as f:
