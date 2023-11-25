@@ -16,11 +16,13 @@ TODO:
 
 import discord
 from discord.ext import commands
+import os
+from dotenv import load_dotenv
 import consts
 
-tokfile = open("token.txt", "r")
-TOKEN = tokfile.readline()
-tokfile.close()
+load_dotenv()
+
+TOKEN = os.get_env('TOKEN')
 
 # Function from @EvieePy on GitHub
 def get_prefix(bot, message):
