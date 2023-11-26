@@ -1,7 +1,7 @@
 """
 Created by: Alex Barker
 Created 11/24/2023
-Last edited 11/24/2023
+Last edited 11/25/2023
 
 Function: Discord bot with miscellaneous functional features
 
@@ -9,24 +9,27 @@ Features:
 	
 
 TODO:
-	Message activity (most active, least active, etc)
-	Anonymous messaging (?confide, ?respond)
+	Message activity (most active, etc)
+	Anonymous messaging (confessing to server, anonymous hotline)
 	Play Spotify/YT music in VC
+	Specific functions for GSO
+	Specific functions for UMD (integrate Mercury schedule builder)
+
 """
 
 import discord
 from discord.ext import commands
 import os
 from dotenv import load_dotenv
+import logging
+import logging.handlers
 import consts
 
 load_dotenv()
-
-TOKEN = os.get_env('TOKEN')
+TOKEN = os.getenv('TOKEN')
 
 # Function from @EvieePy on GitHub
 def get_prefix(bot, message):
-    """A callable Prefix for our bot. This could be edited to allow per server prefixes."""
 
     prefixes = ['!']
 
@@ -41,8 +44,6 @@ def get_prefix(bot, message):
 
 intents = discord.Intents.all()
 bot = commands.Bot(command_prefix=get_prefix, intents=intents, description="A bot that wraps a jukebox and Big Brother into one!")
-	
-bot.remove_command("help")
 
 # run when logging in
 @bot.event
@@ -54,7 +55,9 @@ async def on_ready():
 @bot.event
 async def setup_hook():
 	initialExtensions = [
-		"cogs.activity"
+		"cogs.activity",
+		"cogs.owner",
+		"cogs.economy"
 	]
 	for extension in initialExtensions:
 		await bot.load_extension(extension)
@@ -62,18 +65,23 @@ async def setup_hook():
 @bot.command()
 async def help(ctx, *args):
 	if len(args) == 0:
-		embedVar = discord.Embed(title="Help Menu", description="Use `!help` <command> for more information. Ask @scarome for more help", color=EMBED_COLOR)
+		embedVar = discord.Embed(title="Help Menu", description="Use `!help` <command> for more information. Ask @scarome for more help", color=consts.EMBED_COLOR)
 		embedVar.add_field(name="1. Server Activity", value="`active`", inline=False)
 		await ctx.send(embed=embedVar)
 		return
 	if args[0] == "!active" or args[0] == "active":
-		embedVar = discord.Embed(title="Help Menu: !active", description="See the top 3 most active users", color=EMBED_COLOR)
+		embedVar = discord.Embed(title="Help Menu: !active", description="See the top 3 most active users", color=consts.EMBED_COLOR)
 		embedVar.add_field(name="Usage", value="`!active`", inline=False)
 		await ctx.send(embed=embedVar)
 		return
 	
 @bot.command()
-async def pong(ctx):
-	await ctx.send("Ping!")
+async def ping(ctx):
+	await ctx.send("Pong!")
 
-bot.run(TOKEN, reconnect=True)
+handler = logging.FileHandler(filename='discord.log', encoding='utf-8', mode='w')
+dt_fmt = r'%Y-%m-%d %H:%M:%S'
+formatter = logging.Formatter('[{asctime}] [{levelname:<8}] {name}: {message}', dt_fmt, style='{')
+handler.setFormatter(formatter)
+
+bot.run(TOKEN, reconnect=True, log_handler=handler)
