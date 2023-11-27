@@ -1,7 +1,7 @@
 import discord
 from discord.ext import commands
-from datetime import datetime as dt, timedelta
-import random
+import datetime
+import logging
 import consts
 
 class EconomyCog(commands.Cog):
@@ -15,9 +15,12 @@ class EconomyCog(commands.Cog):
 	async def get_cherries(self, ctx, user: discord.User=None):
 		if not user:
 			user = ctx.author
+		logging.info(f"Retrieving cherries balance for {user}")
+		cherries = get_balance(user)
 		embed_var = discord.Embed(color=consts.EMBED_COLOR)
-		embed_var.add_field(name=":cherries: Cherries :cherries:", value=f"{user.mention}, you have {get_balance(user)} moons", inline=False)
+		embed_var.add_field(name=":cherries: Cherries :cherries:", value=f"{user.mention}, you have {cherries} cherries", inline=False)
 		await ctx.send(embed=embed_var)
+		logging.info(f"Cherries balance of {user} is {cherries}")
 
 	"""
 	Collects the users daily cherries, which increases as they maintain a daily streak
@@ -26,28 +29,43 @@ class EconomyCog(commands.Cog):
 	async def get_daily_cherries(self, ctx):
 		data = consts.get_data(consts.CHERRIES_DATA)
 		user = ctx.author
+		logging.info(f"Collecting daily cherries for {user}")
 		user_data = data.get(str(user))
 		if user_data is None:
 			user_data = init_profile()
 		
 		streak_reset = False
 		now = discord.utils.utcnow()
+		logging.info(f"Current time is {now}")
+
 		daily = user_data.get("daily")
 
 		if daily is None:
 			daily = (None, 0) # default value allows user to get daily now
 
-		if daily[0] is not None and now < (next_invoke := dt.strptime(user_data.get("daily")[0], consts.DAILY_DT_FORMAT) + timedelta(days=1)): # can't get daily yet
-			embedVar = discord.Embed(color=consts.EMBED_COLOR)
-			embedVar.add_field(name=":cherries: Daily Cherries :cherries:", value=f"{user.mention}, wait until {dt.strftime(next_invoke, consts.DAILY_DT_FORMAT)} before your next daily", inline=False)
-			await ctx.send(embed=embedVar)
-			return
-		elif now > next_invoke + timedelta(days=1): # past 2 days, lost streak
-			streak_reset = True
+		if daily[0] is not None:
+			next_invoke = (datetime.datetime.strptime(user_data.get("daily")[0], consts.DAILY_DT_FORMAT) + datetime.timedelta(days=1)).replace(tzinfo=datetime.timezone.utc)
+			logging.debug(f"Next daily invoke can be done at {next_invoke}")
+			if now < next_invoke: # can't get daily yet
+				logging.debug(f"Can't get daily yet")
+				diff = next_invoke - now
+				SECONDS_IN_DAY = 24 * 60 * 60
+				SECONDS_IN_HOUR = 60 * 60
+				SECONDS_IN_MINUTE = 60
+				(hours, r) = divmod(diff.days * SECONDS_IN_DAY + diff.seconds, SECONDS_IN_HOUR)
+				(mins, secs) = divmod(r, SECONDS_IN_MINUTE)
+				embed_var = discord.Embed(color=consts.EMBED_COLOR)
+				embed_var.add_field(name=":cherries: Daily Cherries :cherries:", value=f"{user.mention}, wait {hours} hours, {mins} minutes, and {secs} seconds before your next daily", inline=False)
+				await ctx.send(embed=embed_var)
+				return
+			elif now > next_invoke + datetime.timedelta(days=1): # past 2 days, lost streak
+				logging.debug(f"Lost streak because more than 24 hours after last invoke")
+				streak_reset = True
 
 		current_cherries = get_balance(user)
 		user_streak = daily[1] + 1
 		added_cherries = calc_daily(user_streak)
+		logging.debug(f"Daily added {added_cherries} cherries from a streak of {user_streak} to current balance of {current_cherries}")
 		data.update({
 				str(user): {
 					"cherries": current_cherries + added_cherries,
@@ -58,58 +76,68 @@ class EconomyCog(commands.Cog):
 		embed_var = discord.Embed(color=consts.EMBED_COLOR)
 		if streak_reset:
 			embed_text = f"{user.mention} got {added_cherries} cherries! Streak: {user_streak}. \
-					Your streak was reset because it's been 48 hours since your last !daily :confused:. \
+					Your streak was reset because it's been 24 hours since your last !daily :confused:. \
 					Come back tomorrow for {consts.CHERRIES_MULTIPLIER} more!"
 		else:
 			embed_text = f"{user.mention} got {added_cherries} cherries! Streak: {user_streak}. Come back tomorrow for {consts.CHERRIES_MULTIPLIER} more!"
 		embed_var.add_field(name=":cherries: Daily Cherries :cherries:", value=embed_text, inline=False)
-		await ctx.send(embed=embedVar)
+		await ctx.send(embed=embed_var)
 
-		consts.set_data(data, consts.CHERRIES_DATA)
+		consts.set_data(consts.CHERRIES_DATA, data)
+		logging.info(f"Successfully collected daily cherries for {user}")
 
 
 	"""
 	Transfers cherries from one user to another
 	"""
 	@commands.command(name="give", aliases=["transfer", "g"])
-	async def transfer_cherries(self, ctx, recipient: discord.User=None, cherries: int=1):
+	async def transfer_cherries(self, ctx, recipient: discord.User=None, transferred: int=1):
 		if not recipient:
 			return
-		
+
 		data = consts.get_data(consts.CHERRIES_DATA)
 		user = ctx.author
+		logging.info(f"Transferring {transferred} cherries from {user} to {recipient}")
 		user_data = data.get(str(user))
-		if user_data is None or (balance := get_balance(user)) < cherries:
-			embedVar = discord.Embed(color=consts.EMBED_COLOR)
-			embedVar.add_field(name=":cherries: Give Cherries: Fail :cherries:", value=f"{user.mention}, you don't have that many cherries to give. Your current balance is {balance}", inline=False)
-			await ctx.send(embed=embedVar)
+		if (balance := get_balance(user)) < transferred: # not enough cherries to give
+			logging.debug(f"Failed transferring cherries from {user} to {recipient}, user balance is {balance} which is less than {transferred}")
+			embed_var = discord.Embed(color=consts.EMBED_COLOR)
+			embed_var.add_field(name=":cherries: Give Cherries: Fail :cherries:", value=f"{user.mention}, you don't have that many cherries to give. Your current balance is {balance}", inline=False)
+			await ctx.send(embed=embed_var)
 			return
-		else:
-			user_data.update({"cherries": balance-cherries})
-			if data.get(str(recipient)) == None:
-				data.update({
-						str(recipient): {
-							"moons": givenMoons,
-							"daily": [None, 0]
-						}
-					})
-			else:
-				currentRecMoons = data.get(str(recipient)).get("moons")
-				data.get(str(recipient)).update({"moons": currentRecMoons+givenMoons})
-			embedVar = discord.Embed(color=EMBED_COLOR)
-			embedVar.add_field(name=":full_moon: Give Moons: Success! :full_moon:", value="<@!{}>, gave {} moons to <@!{}>".format(user, givenMoons, recipient), inline=False)
-			await ctx.send(embed=embedVar)
-		consts.set_data(data, consts.CHERRIES_DATA)
 
-def set_cherries(user, cherries):
+		logging.debug(f"{user} has enough cherries, new balance is {balance - transferred}")
+		user_data.update({"cherries": balance - transferred})
+		if (recipient_data := data.get(str(recipient))) is None: # recipient doesn't have any data
+			data.update({
+					str(recipient): {
+						"cherries": transferred,
+						"daily": [None, 0]
+					}
+				})
+			logging.debug(f"Recipient balance changed from 0 to {transferred}")
+		else: # otherwise update their existing data
+			recipient_balance = get_balance(recipient)
+			recipient_data.update({"cherries": recipient_balance + transferred})
+			data.update({str(recipient): recipient_data})
+			logging.debug(f"Recipient balance changed from {recipient_balance} to {recipient_balance + transferred}")
+
+		data.update({str(user): user_data})
+		embed_var = discord.Embed(color=consts.EMBED_COLOR)
+		embed_var.add_field(name=":cherries: Give Cherries: Success! :cherries:", value=f"{user.mention} gave {transferred} cherries to {recipient.mention}", inline=False)
+		await ctx.send(embed=embed_var)
+		consts.set_data(consts.CHERRIES_DATA, data)
+		logging.info(f"Successfully transferred cherries from {user} to {recipient}")
+
+def set_balance(user, cherries):
 	data = consts.get_data(consts.CHERRIES_DATA)
 	data.get(str(user)).update({
-		"cherries": getBalance(user)
+		"cherries": cherries
 	})
-	consts.set_data(data, consts.CHERRIES_DATA)
+	consts.set_data(consts.CHERRIES_DATA, data)
 
 def get_balance(user):
-	data = consts.get_data(consts.MOONS_DATA)
+	data = consts.get_data(consts.CHERRIES_DATA)
 	user_data = data.get(str(user))
 	if user_data is None: #user data doesn't exist
 		return 0
@@ -125,5 +153,5 @@ def init_profile():
 		"daily": (None, 0)
 	}
 
-def setup(bot):
-	bot.add_cog(EconomyCog(bot))
+async def setup(bot):
+	await bot.add_cog(EconomyCog(bot))

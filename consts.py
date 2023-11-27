@@ -1,13 +1,14 @@
 import json
 import os
 
-DAILY_DT_FORMAT = r"%m/%d/%Y" #01/01/2023
-LOG_DT_FORMAT = r"%Y:%m:%d:"
+DAILY_DT_FORMAT = r"%m/%d/%Y" #01/01/2020
+LOG_DT_FORMAT = r'%Y-%m-%d %H:%M:%S'
 EMBED_COLOR = 0xe620c1
 ACTIVITY_DATA = os.path.abspath('data/activity.json')
-CHERRIES_DATA = os.path.abspath('data/cherriesS.json')
-
+CHERRIES_DATA = os.path.abspath('data/cherries.json')
 CHERRIES_MULTIPLIER = 10
+
+
 
 """
 Read json file data

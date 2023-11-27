@@ -62,26 +62,25 @@ async def setup_hook():
 	for extension in initialExtensions:
 		await bot.load_extension(extension)
 
-@bot.command()
-async def help(ctx, *args):
-	if len(args) == 0:
-		embedVar = discord.Embed(title="Help Menu", description="Use `!help` <command> for more information. Ask @scarome for more help", color=consts.EMBED_COLOR)
-		embedVar.add_field(name="1. Server Activity", value="`active`", inline=False)
-		await ctx.send(embed=embedVar)
-		return
-	if args[0] == "!active" or args[0] == "active":
-		embedVar = discord.Embed(title="Help Menu: !active", description="See the top 3 most active users", color=consts.EMBED_COLOR)
-		embedVar.add_field(name="Usage", value="`!active`", inline=False)
-		await ctx.send(embed=embedVar)
-		return
+# @bot.command()
+# async def help(ctx, *args):
+# 	if len(args) == 0:
+# 		embedVar = discord.Embed(title="Help Menu", description="Use `!help` <command> for more information. Ask @scarome for more help", color=consts.EMBED_COLOR)
+# 		embedVar.add_field(name="1. Server Activity", value="`active`", inline=False)
+# 		await ctx.send(embed=embedVar)
+# 		return
+# 	if args[0] == "!active" or args[0] == "active":
+# 		embedVar = discord.Embed(title="Help Menu: !active", description="See the top 3 most active users", color=consts.EMBED_COLOR)
+# 		embedVar.add_field(name="Usage", value="`!active`", inline=False)
+# 		await ctx.send(embed=embedVar)
+# 		return
 	
 @bot.command()
 async def ping(ctx):
 	await ctx.send("Pong!")
 
 handler = logging.FileHandler(filename='discord.log', encoding='utf-8', mode='w')
-dt_fmt = r'%Y-%m-%d %H:%M:%S'
-formatter = logging.Formatter('[{asctime}] [{levelname:<8}] {name}: {message}', dt_fmt, style='{')
+formatter = logging.Formatter('[{asctime}] [{levelname:<8}] {name}: {message}', consts.LOG_DT_FORMAT, style='{')
 handler.setFormatter(formatter)
 
 bot.run(TOKEN, reconnect=True, log_handler=handler)
