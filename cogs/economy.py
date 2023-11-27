@@ -27,24 +27,14 @@ class EconomyCog(commands.Cog):
 	"""
 	@commands.command(name="dailycherries", aliases=["daily", "d"])
 	async def get_daily_cherries(self, ctx):
-		data = consts.get_data(consts.CHERRIES_DATA)
 		user = ctx.author
 		logging.info(f"Collecting daily cherries for {user}")
-		user_data = data.get(str(user))
-		if user_data is None:
-			user_data = init_profile()
-		
 		streak_reset = False
 		now = discord.utils.utcnow()
 		logging.info(f"Current time is {now}")
-
-		daily = user_data.get("daily")
-
-		if daily is None:
-			daily = (None, 0) # default value allows user to get daily now
-
+		daily = get_user_data(user, "daily")
 		if daily[0] is not None:
-			next_invoke = (datetime.datetime.strptime(user_data.get("daily")[0], consts.DAILY_DT_FORMAT) + datetime.timedelta(days=1)).replace(tzinfo=datetime.timezone.utc)
+			next_invoke = (datetime.datetime.strptime(daily[0], consts.DAILY_DT_FORMAT) + datetime.timedelta(days=1)).replace(tzinfo=datetime.timezone.utc)
 			logging.debug(f"Next daily invoke can be done at {next_invoke}")
 			if now < next_invoke: # can't get daily yet
 				logging.debug(f"Can't get daily yet")
@@ -62,16 +52,10 @@ class EconomyCog(commands.Cog):
 				logging.debug(f"Lost streak because more than 24 hours after last invoke")
 				streak_reset = True
 
-		current_cherries = get_balance(user)
+		balance = get_user_data(user, "balance")
 		user_streak = daily[1] + 1
 		added_cherries = calc_daily(user_streak)
-		logging.debug(f"Daily added {added_cherries} cherries from a streak of {user_streak} to current balance of {current_cherries}")
-		data.update({
-				str(user): {
-					"cherries": current_cherries + added_cherries,
-					"daily": [now.strftime(consts.DAILY_DT_FORMAT), user_streak]
-				}
-			})
+		logging.debug(f"Daily added {added_cherries} cherries from a streak of {user_streak} to current balance of {balance}")
 		
 		embed_var = discord.Embed(color=consts.EMBED_COLOR)
 		if streak_reset:
@@ -83,7 +67,10 @@ class EconomyCog(commands.Cog):
 		embed_var.add_field(name=":cherries: Daily Cherries :cherries:", value=embed_text, inline=False)
 		await ctx.send(embed=embed_var)
 
-		consts.set_data(consts.CHERRIES_DATA, data)
+		set_user_data(user, \
+				("balance", balance + added_cherries),\
+				("daily", (now.strftime(consts.DAILY_DT_FORMAT), user_streak)))
+
 		logging.info(f"Successfully collected daily cherries for {user}")
 
 
@@ -129,27 +116,31 @@ class EconomyCog(commands.Cog):
 		consts.set_data(consts.CHERRIES_DATA, data)
 		logging.info(f"Successfully transferred cherries from {user} to {recipient}")
 
-def set_balance(user, cherries):
-	data = consts.get_data(consts.CHERRIES_DATA)
-	data.get(str(user)).update({
-		"cherries": cherries
-	})
-	consts.set_data(consts.CHERRIES_DATA, data)
-
-def get_balance(user):
+def set_user_data(user, *args):
 	data = consts.get_data(consts.CHERRIES_DATA)
 	user_data = data.get(str(user))
-	if user_data is None: #user data doesn't exist
-		return 0
-	else:
-		return user_data.get("cherries")
+	if user_data is None:
+		user_data = init_profile()
+	for (k,v) in args:
+		user_data.update({k: v})
+	data.update(user_data)
+	consts.set_data(consts.CHERRIES_DATA, data)
+
+def get_user_data(user, key):
+	data = consts.get_data(consts.CHERRIES_DATA)
+	user_data = data.get(str(user))
+	if user_data is None:
+		user_data = init_profile()
+		data.update(user_data)
+		consts.set_data(consts.CHERRIES_DATA, data)
+	return user_data.get(key)
 
 def calc_daily(streak):
 	return consts.CHERRIES_MULTIPLIER * streak
 
 def init_profile():
 	return {
-		"cherries": 0,
+		"balance": 0,
 		"daily": (None, 0)
 	}
 
