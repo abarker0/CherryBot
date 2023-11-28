@@ -43,7 +43,7 @@ def get_prefix(bot, message):
 
 
 intents = discord.Intents.all()
-bot = commands.Bot(command_prefix=get_prefix, intents=intents, description="A bot that wraps a jukebox and Big Brother into one!")
+bot = commands.Bot(command_prefix=get_prefix, intents=intents, description="A bot that wraps a jukebox and Big Brother into one!", help_command=None)
 
 # run when logging in
 @bot.event
@@ -62,25 +62,26 @@ async def setup_hook():
 	for extension in initialExtensions:
 		await bot.load_extension(extension)
 
-# @bot.command()
-# async def help(ctx, *args):
-# 	if len(args) == 0:
-# 		embedVar = discord.Embed(title="Help Menu", description="Use `!help` <command> for more information. Ask @scarome for more help", color=consts.EMBED_COLOR)
-# 		embedVar.add_field(name="1. Server Activity", value="`active`", inline=False)
-# 		await ctx.send(embed=embedVar)
-# 		return
-# 	if args[0] == "!active" or args[0] == "active":
-# 		embedVar = discord.Embed(title="Help Menu: !active", description="See the top 3 most active users", color=consts.EMBED_COLOR)
-# 		embedVar.add_field(name="Usage", value="`!active`", inline=False)
-# 		await ctx.send(embed=embedVar)
-# 		return
+@bot.command()
+async def help(ctx, *args):
+	if len(args) == 0:
+		embedVar = discord.Embed(title="Help Menu", description="Use `!help` <command> for more information. Ask @scarome for more help", color=consts.EMBED_COLOR)
+		embedVar.add_field(name="1. Server Activity", value="`active`", inline=False)		
+		embedVar.add_field(name="2. Economy", value="`balance`, `daily`, `give`", inline=False)
+		await ctx.send(embed=embedVar)
+		return
+	if args[0] == "!active" or args[0] == "active":
+		embedVar = discord.Embed(title="Help Menu: !active", description="See the top 3 most active users", color=consts.EMBED_COLOR)
+		embedVar.add_field(name="Usage", value="`!active`", inline=False)
+		await ctx.send(embed=embedVar)
+		return
 	
 @bot.command()
 async def ping(ctx):
+	logging.info("Ping command called")
 	await ctx.send("Pong!")
 
+logger = logging.getLogger(__name__)
 handler = logging.FileHandler(filename='discord.log', encoding='utf-8', mode='w')
-formatter = logging.Formatter('[{asctime}] [{levelname:<8}] {name}: {message}', consts.LOG_DT_FORMAT, style='{')
-handler.setFormatter(formatter)
 
-bot.run(TOKEN, reconnect=True, log_handler=handler)
+bot.run(TOKEN, reconnect=True, log_handler=handler, log_level=logging.DEBUG)
