@@ -22,7 +22,7 @@ from discord.ext import commands
 import os
 from dotenv import load_dotenv
 import logging
-import logging.handlers
+import logging.config
 import consts
 
 load_dotenv()
@@ -55,9 +55,10 @@ async def on_ready():
 @bot.event
 async def setup_hook():
 	initialExtensions = [
-		"cogs.activity",
+		# "cogs.activity",
 		"cogs.owner",
-		"cogs.economy"
+		"cogs.economy",
+		"cogs.gambling"
 	]
 	for extension in initialExtensions:
 		await bot.load_extension(extension)
@@ -78,10 +79,12 @@ async def help(ctx, *args):
 	
 @bot.command()
 async def ping(ctx):
-	logging.info("Ping command called")
+	cherry_logger.info("Ping command called")
 	await ctx.send("Pong!")
 
-logger = logging.getLogger(__name__)
-handler = logging.FileHandler(filename='discord.log', encoding='utf-8', mode='w')
 
-bot.run(TOKEN, reconnect=True, log_handler=handler, log_level=logging.DEBUG)
+logging.config.dictConfig(consts.get_data(consts.LOGGING_CFG_PATH))
+logger = logging.getLogger('discord')
+cherry_logger = logging.getLogger("cherry")
+
+bot.run(TOKEN, reconnect=True)

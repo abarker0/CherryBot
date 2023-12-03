@@ -4,6 +4,8 @@ import datetime
 import logging
 import consts
 
+logger = logging.getLogger("cherry.economy")
+
 class EconomyCog(commands.Cog):
 	def __init__(self, bot):
 		self.bot = bot
@@ -15,12 +17,11 @@ class EconomyCog(commands.Cog):
 	async def get_cherries(self, ctx, user: discord.User=None):
 		if not user:
 			user = ctx.author
-		logging.info(f"Retrieving cherries balance for {user}")
-		cherries = consts.get_user_data("economy", user, "balance")
+		balance = get_balance(user)
 		embed_var = discord.Embed(color=consts.EMBED_COLOR)
-		embed_var.add_field(name=":cherries: Cherries :cherries:", value=f"{user.mention}, you have {cherries} cherries", inline=False)
+		embed_var.add_field(name=":cherries: Cherries :cherries:", value=f"{user.mention}, you have {balance} cherries", inline=False)
 		await ctx.send(embed=embed_var)
-		logging.info(f"Cherries balance of {user} is {cherries}")
+		logger.info(f"Successfully got cherries balance for {user}")
 
 
 	"""
@@ -29,17 +30,17 @@ class EconomyCog(commands.Cog):
 	@commands.command(name="dailycherries", aliases=["daily", "d"])
 	async def get_daily_cherries(self, ctx):
 		user = ctx.author
-		logging.info(f"Collecting daily cherries for {user}")
+		logger.info(f"Collecting daily cherries for {user}")
 
 		streak_reset = False
 		now = discord.utils.utcnow()
-		logging.debug(f"Current time is {now}")
+		logger.debug(f"Current time is {now}")
 		daily = consts.get_user_data("economy", user, "daily")
 		if daily[0] is not None:
 			next_invoke = (datetime.datetime.strptime(daily[0], consts.DAILY_DT_FORMAT) + datetime.timedelta(days=1)).replace(tzinfo=datetime.timezone.utc)
-			logging.debug(f"Next daily invoke can be done at {next_invoke}")
+			logger.debug(f"Next daily invoke can be done at {next_invoke}")
 			if now < next_invoke: # can't get daily yet
-				logging.debug(f"Can't get daily yet")
+				logger.debug(f"Can't get daily yet")
 
 				diff = next_invoke - now
 				SECONDS_IN_DAY = 24 * 60 * 60
@@ -53,13 +54,13 @@ class EconomyCog(commands.Cog):
 				await ctx.send(embed=embed_var)
 				return
 			elif now > next_invoke + datetime.timedelta(days=1): # past 2 days, lost streak
-				logging.debug(f"Lost streak because more than 24 hours after last invoke")
+				logger.debug(f"Lost streak because more than 24 hours after last invoke")
 				streak_reset = True
 
-		balance = consts.get_user_data("economy", user, "balance")
-		user_streak = daily[1] + 1
+		balance = get_balance(user)
+		user_streak = daily[1] + 1 if not streak_reset else 1
 		added_cherries = calc_daily(user_streak)
-		logging.debug(f"Daily added {added_cherries} cherries from a streak of {user_streak} to current balance of {balance}")
+		logger.debug(f"Daily added {added_cherries} cherries from a streak of {user_streak} to current balance of {balance}")
 		
 		embed_var = discord.Embed(color=consts.EMBED_COLOR)
 		if streak_reset:
@@ -71,11 +72,11 @@ class EconomyCog(commands.Cog):
 		embed_var.add_field(name=":cherries: Daily Cherries :cherries:", value=embed_text, inline=False)
 		await ctx.send(embed=embed_var)
 
-		consts.set_user_data("economy", user, \
+		consts.set_user_data("economy", str(user), \
 				("balance", balance + added_cherries),\
 				("daily", (now.strftime(consts.DAILY_DT_FORMAT), user_streak)))
 
-		logging.info(f"Successfully collected daily cherries for {user}")
+		logger.info(f"Successfully collected daily cherries for {user}")
 
 
 	"""
@@ -87,27 +88,45 @@ class EconomyCog(commands.Cog):
 			return
 
 		user = ctx.author
-		logging.info(f"Transferring {transferred} cherries from {user} to {recipient}")
-		balance = consts.get_user_data("economy", user, "balance")
+		logger.info(f"Transferring {transferred} cherries from {user} to {recipient}")
+		balance = get_balance(user)
 		if balance < transferred: # not enough cherries to give
-			logging.debug(f"Failed transferring cherries from {user} to {recipient}, user balance is {balance} which is less than {transferred}")
+			logger.debug(f"Failed transferring cherries from {user} to {recipient}, user balance is {balance} which is less than {transferred}")
 			embed_var = discord.Embed(color=consts.EMBED_COLOR)
 			embed_var.add_field(name=":cherries: Give Cherries: Fail :cherries:", value=f"{user.mention}, you don't have that many cherries to give. Your current balance is {balance}", inline=False)
 			await ctx.send(embed=embed_var)
 			return
 
-		logging.debug(f"{user} has enough cherries, new balance is {balance - transferred}")
-		consts.set_user_data("economy", user, ("cherries", balance - transferred))
+		logger.debug(f"{user} has enough cherries, new balance is {balance - transferred}")
+		set_balance(user, balance - transferred)
 
-		recipient_balance = consts.get_user_data("economy", recipient, "balance")
-		consts.set_user_data("economy", recipient, ("balance", recipient_balance + transferred))
-		logging.debug(f"Recipient balance changed from {recipient_balance} to {recipient_balance + transferred}")
+		recipient_balance = get_balance(recipient)
+		set_balance(recipient, recipient_balance + transferred)
+		logger.debug(f"Recipient balance changed from {recipient_balance} to {recipient_balance + transferred}")
 
 		embed_var = discord.Embed(color=consts.EMBED_COLOR)
 		embed_var.add_field(name=":cherries: Give Cherries: Success! :cherries:", value=f"{user.mention} gave {transferred} cherries to {recipient.mention}", inline=False)
 		await ctx.send(embed=embed_var)
-		logging.info(f"Successfully transferred cherries from {user} to {recipient}")
+		logger.info(f"Successfully transferred cherries from {user} to {recipient}")
 
+"""
+Get user's balance (used by cogs.gambling)
+"""
+def get_balance(user):
+	user = str(user)
+	logger.info(f"Retrieving cherries balance for {user}")
+	balance = consts.get_user_data("economy", user, "balance")
+	logger.debug(f"Cherries balance of {user} is {balance}")
+	return balance
+
+"""
+Set user's balance (used by cogs.gambling)
+"""
+def set_balance(user, new_balance):
+	user = str(user)
+	logger.info(f"Changing balance for {user} to {new_balance}")
+	consts.set_user_data("economy", user, ("balance", new_balance))
+	logger.debug(f"New balance of {user} is {new_balance}")
 
 """
 Calculates the daily amount given a streak

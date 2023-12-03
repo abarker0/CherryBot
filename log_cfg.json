@@ -1,0 +1,39 @@
+{
+    "version": 1,
+    "disable_existing_loggers": "False",
+    "formatters": {
+        "default": {
+            "format": "%(asctime)s %(name)s %(levelname)s %(message)s"
+        }
+    },
+    "handlers": {
+        "cherry": {
+            "class": "logging.handlers.RotatingFileHandler",
+            "formatter": "default",
+            "level": "DEBUG",
+            "filename": "cherry.log",
+            "mode": "w",
+            "encoding": "utf-8",
+            "maxBytes": 20480,
+            "backupCount": 3
+        },
+        "discord": {
+            "class": "logging.FileHandler",
+            "formatter": "default",
+            "level": "DEBUG",
+            "filename": "discord.log",
+            "mode": "w",
+            "encoding": "utf-8"
+        }
+    },
+    "loggers": {
+        "cherry": {
+            "level": "DEBUG",
+            "handlers": ["cherry"]
+        },
+        "discord": {
+            "level": "DEBUG",
+            "handlers": ["discord"]
+        }
+    }
+}

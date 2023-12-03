@@ -1,7 +1,16 @@
 {
-    "balance": 0,
-    "daily": [
-        null,
-        0
-    ]
+    "_soccerlegend": {
+        "balance": 10,
+        "daily": [
+            null,
+            0
+        ]
+    },
+    "scarome": {
+        "balance": 20,
+        "daily": [
+            "12/03/2023",
+            2
+        ]
+    }
 }
