@@ -6,15 +6,16 @@ Last edited 11/25/2023
 Function: Discord bot with miscellaneous functional features
 
 Features:
+	Message activity (tracks user messages, displays top three most active users in the server)
+	Economy functions (getting balance, collecting daily currency, transferring funds, integration with gambling functions)
+	Gambling functions (play 50-50 coin flip, play blackjack)
 	
-
 TODO:
-	Message activity (most active, etc)
 	Anonymous messaging (confessing to server, anonymous hotline)
 	Play Spotify/YT music in VC
 	Specific functions for GSO
 	Specific functions for UMD (integrate Mercury schedule builder)
-
+	Pokemon
 """
 
 import discord
@@ -58,7 +59,8 @@ async def setup_hook():
 		# "cogs.activity",
 		"cogs.owner",
 		"cogs.economy",
-		"cogs.gambling"
+		"cogs.gambling",
+		"cogs.music"
 	]
 	for extension in initialExtensions:
 		await bot.load_extension(extension)
@@ -66,15 +68,15 @@ async def setup_hook():
 @bot.command()
 async def help(ctx, *args):
 	if len(args) == 0:
-		embedVar = discord.Embed(title="Help Menu", description="Use `!help` <command> for more information. Ask @scarome for more help", color=consts.EMBED_COLOR)
-		embedVar.add_field(name="1. Server Activity", value="`active`", inline=False)		
-		embedVar.add_field(name="2. Economy", value="`balance`, `daily`, `give`", inline=False)
-		await ctx.send(embed=embedVar)
+		embed = discord.Embed(title="Help Menu", description="Use `!help` <command> for more information. Ask @scarome for more help", color=consts.EMBED_COLOR)
+		embed.add_field(name="1. Server Activity", value="`active`", inline=False)
+		embed.add_field(name="2. Economy", value="`balance`, `daily`, `give`", inline=False)
+		await ctx.send(embed=embed)
 		return
 	if args[0] == "!active" or args[0] == "active":
-		embedVar = discord.Embed(title="Help Menu: !active", description="See the top 3 most active users", color=consts.EMBED_COLOR)
-		embedVar.add_field(name="Usage", value="`!active`", inline=False)
-		await ctx.send(embed=embedVar)
+		embed = discord.Embed(title="Help Menu: !active", description="See the top 3 most active users", color=consts.EMBED_COLOR)
+		embed.add_field(name="Usage", value="`!active`", inline=False)
+		await ctx.send(embed=embed)
 		return
 	
 @bot.command()

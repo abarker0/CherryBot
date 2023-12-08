@@ -18,9 +18,9 @@ class EconomyCog(commands.Cog):
 		if not user:
 			user = ctx.author
 		balance = get_balance(user)
-		embed_var = discord.Embed(color=consts.EMBED_COLOR)
-		embed_var.add_field(name=":cherries: Cherries :cherries:", value=f"{user.mention}, you have {balance} cherries", inline=False)
-		await ctx.send(embed=embed_var)
+		embed = discord.Embed(color=consts.EMBED_COLOR)
+		embed.add_field(name=":cherries: Cherries :cherries:", value=f"{user.mention}, you have {balance} cherries", inline=False)
+		await ctx.send(embed=embed)
 		logger.info(f"Successfully got cherries balance for {user}")
 
 
@@ -49,9 +49,9 @@ class EconomyCog(commands.Cog):
 				(hours, r) = divmod(diff.days * SECONDS_IN_DAY + diff.seconds, SECONDS_IN_HOUR)
 				(mins, secs) = divmod(r, SECONDS_IN_MINUTE)
 
-				embed_var = discord.Embed(color=consts.EMBED_COLOR)
-				embed_var.add_field(name=":cherries: Daily Cherries :cherries:", value=f"{user.mention}, wait {hours} hours, {mins} minutes, and {secs} seconds before your next daily", inline=False)
-				await ctx.send(embed=embed_var)
+				embed = discord.Embed(color=consts.EMBED_COLOR)
+				embed.add_field(name=":cherries: Daily Cherries :cherries:", value=f"{user.mention}, wait {hours} hours, {mins} minutes, and {secs} seconds before your next daily", inline=False)
+				await ctx.send(embed=embed)
 				return
 			elif now > next_invoke + datetime.timedelta(days=1): # past 2 days, lost streak
 				logger.debug(f"Lost streak because more than 24 hours after last invoke")
@@ -62,15 +62,15 @@ class EconomyCog(commands.Cog):
 		added_cherries = calc_daily(user_streak)
 		logger.debug(f"Daily added {added_cherries} cherries from a streak of {user_streak} to current balance of {balance}")
 		
-		embed_var = discord.Embed(color=consts.EMBED_COLOR)
+		embed = discord.Embed(color=consts.EMBED_COLOR)
 		if streak_reset:
 			embed_text = f"{user.mention} got {added_cherries} cherries! Streak: {user_streak}. \
 					Your streak was reset because it's been 24 hours since your last !daily :confused:. \
 					Come back tomorrow for {consts.CHERRIES_MULTIPLIER} more!"
 		else:
 			embed_text = f"{user.mention} got {added_cherries} cherries! Streak: {user_streak}. Come back tomorrow for {consts.CHERRIES_MULTIPLIER} more!"
-		embed_var.add_field(name=":cherries: Daily Cherries :cherries:", value=embed_text, inline=False)
-		await ctx.send(embed=embed_var)
+		embed.add_field(name=":cherries: Daily Cherries :cherries:", value=embed_text, inline=False)
+		await ctx.send(embed=embed)
 
 		consts.set_user_data("economy", str(user), \
 				("balance", balance + added_cherries),\
@@ -92,9 +92,9 @@ class EconomyCog(commands.Cog):
 		balance = get_balance(user)
 		if balance < transferred: # not enough cherries to give
 			logger.debug(f"Failed transferring cherries from {user} to {recipient}, user balance is {balance} which is less than {transferred}")
-			embed_var = discord.Embed(color=consts.EMBED_COLOR)
-			embed_var.add_field(name=":cherries: Give Cherries: Fail :cherries:", value=f"{user.mention}, you don't have that many cherries to give. Your current balance is {balance}", inline=False)
-			await ctx.send(embed=embed_var)
+			embed = discord.Embed(color=consts.EMBED_COLOR)
+			embed.add_field(name=":cherries: Give Cherries: Fail :cherries:", value=f"{user.mention}, you don't have that many cherries to give. Your current balance is {balance}", inline=False)
+			await ctx.send(embed=embed)
 			return
 
 		logger.debug(f"{user} has enough cherries, new balance is {balance - transferred}")
@@ -104,9 +104,9 @@ class EconomyCog(commands.Cog):
 		set_balance(recipient, recipient_balance + transferred)
 		logger.debug(f"Recipient balance changed from {recipient_balance} to {recipient_balance + transferred}")
 
-		embed_var = discord.Embed(color=consts.EMBED_COLOR)
-		embed_var.add_field(name=":cherries: Give Cherries: Success! :cherries:", value=f"{user.mention} gave {transferred} cherries to {recipient.mention}", inline=False)
-		await ctx.send(embed=embed_var)
+		embed = discord.Embed(color=consts.EMBED_COLOR)
+		embed.add_field(name=":cherries: Give Cherries: Success! :cherries:", value=f"{user.mention} gave {transferred} cherries to {recipient.mention}", inline=False)
+		await ctx.send(embed=embed)
 		logger.info(f"Successfully transferred cherries from {user} to {recipient}")
 
 """

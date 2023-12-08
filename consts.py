@@ -77,6 +77,10 @@ class Blackjack_State(Enum):
 	LOSE = 3
 	TIE = 4
 
+YDL_OPTIONS = {'format': 'bestaudio'}
+FFMPEG_OPTIONS = {'options': '-vn'}
+MUSIC_RESULT_COUNT = 10
+
 
 """
 Read json file data

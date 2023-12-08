@@ -31,19 +31,19 @@ class GamblingCog(commands.Cog):
 
 		flip = random.choice(list(consts.Coin))
 		logger.debug(f"Flipped {flip.value}")
-		embed_var = discord.Embed(color=consts.EMBED_COLOR)
+		embed = discord.Embed(color=consts.EMBED_COLOR)
 		if flip == bet:
 			new_balance = balance + amt
 			logger.debug(f"User balance changed from {balance} to {new_balance}")
-			embed_var.add_field(name=":cherries: Flip Cherries: Win :cherries:", value=f"I flipped {flip.value}! {user.mention} won {amt} cherries! You now have {new_balance} cherries.", inline=False)
+			embed.add_field(name=":cherries: Flip Cherries: Win :cherries:", value=f"I flipped {flip.value}! {user.mention} won {amt} cherries! You now have {new_balance} cherries.", inline=False)
 		else:
 			new_balance = balance - amt
 			logger.debug(f"User balance changed from {balance} to {new_balance}")
-			embed_var.add_field(name=":cherries: Flip Cherries: Loss :cherries:", value=f"I flipped {flip.value}! {user.mention} lost {amt} cherries. You now have {new_balance} cherries.", inline=False) 
+			embed.add_field(name=":cherries: Flip Cherries: Loss :cherries:", value=f"I flipped {flip.value}! {user.mention} lost {amt} cherries. You now have {new_balance} cherries.", inline=False) 
 		
 		logger.debug(f"Changing user balance to match win/loss")
 		economy.set_balance(user, new_balance)
-		await ctx.send(embed=embed_var)
+		await ctx.send(embed=embed)
 		logger.info(f"Successfully flipped coin for {user}")
 
 
@@ -55,9 +55,9 @@ class GamblingCog(commands.Cog):
 		balance = economy.get_balance(user)
 		if balance < amt:
 			logger.info(f"Failed starting blackjack game, user balance is {balance} which is less than {amt}")
-			embed_var = discord.Embed(color=consts.EMBED_COLOR)
-			embed_var.add_field(name=":spades: Blackjack: Cancelled :spades:", value=f"{user.mention}, you don't have enough cherries to gamble. Your current balance is {balance}", inline=False)
-			await ctx.send(embed=embed_var)
+			embed = discord.Embed(color=consts.EMBED_COLOR)
+			embed.add_field(name=":spades: Blackjack: Cancelled :spades:", value=f"{user.mention}, you don't have enough cherries to gamble. Your current balance is {balance}", inline=False)
+			await ctx.send(embed=embed)
 			return
 		
 		logger.info(f"Starting blackjack game for {user} for {amt} cherries")
@@ -70,11 +70,11 @@ class GamblingCog(commands.Cog):
 		logger.debug(f"Starting hands: dealer has {dealer_cards} with total {dealer_hand_total}, {user} has {player_cards} with total {player_hand_total}")
 
 
-		embed_var = discord.Embed(color=consts.EMBED_COLOR)
-		embed_var.add_field(name=f":spades: Blackjack: In progress :spades:", value=consts.BLACKJACK_HELP, inline=False)
-		embed_var.add_field(name=f"{user}", value=display_cards(player_cards), inline=False)
-		embed_var.add_field(name=f"Dealer", value=display_cards(dealer_cards, hidden=1), inline=False)
-		msg = await ctx.send(embed=embed_var)
+		embed = discord.Embed(color=consts.EMBED_COLOR)
+		embed.add_field(name=f":spades: Blackjack: In progress :spades:", value=consts.BLACKJACK_HELP, inline=False)
+		embed.add_field(name=f"{user}", value=display_cards(player_cards), inline=False)
+		embed.add_field(name=f"Dealer", value=display_cards(dealer_cards, hidden=1), inline=False)
+		msg = await ctx.send(embed=embed)
 	
 		def check(reaction, user):
 			logger.debug(f"Received {reaction}, {user} from blackjack input check")
@@ -99,11 +99,11 @@ class GamblingCog(commands.Cog):
 						state = consts.Blackjack_State.LOSE
 					else:
 						logger.debug(f"No bust, updating display")
-						embed_var = discord.Embed(color=consts.EMBED_COLOR)
-						embed_var.add_field(name=f":spades: Blackjack: In progress :spades:", value=consts.BLACKJACK_HELP, inline=False)
-						embed_var.add_field(name=f"{user}", value=display_cards(player_cards), inline=False)
-						embed_var.add_field(name=f"Dealer", value=display_cards(dealer_cards, hidden=1), inline=False)
-						await msg.edit(embed=embed_var)
+						embed = discord.Embed(color=consts.EMBED_COLOR)
+						embed.add_field(name=f":spades: Blackjack: In progress :spades:", value=consts.BLACKJACK_HELP, inline=False)
+						embed.add_field(name=f"{user}", value=display_cards(player_cards), inline=False)
+						embed.add_field(name=f"Dealer", value=display_cards(dealer_cards, hidden=1), inline=False)
+						await msg.edit(embed=embed)
 						
 				else:
 					logger.debug(f"Received 'Stand' input")
@@ -153,30 +153,30 @@ class GamblingCog(commands.Cog):
 				logger.debug(f"Dealer busts so player wins, {player_hand_total} to {dealer_hand_total}")
 				state = consts.Blackjack_State.WIN
 
-		embed_var = discord.Embed(color=consts.EMBED_COLOR)
+		embed = discord.Embed(color=consts.EMBED_COLOR)
 		if state == consts.Blackjack_State.WIN:
 			if player_hand_total == 21 and len(player_cards) in [2,5]:
-				embed_var.add_field(name=f":spades: Blackjack: Win! :spades:", value=f"{user.mention} won {amt} cherries with a {len(player_cards)} card blackjack! New balance is {balance + amt} cherries", inline=False)
+				embed.add_field(name=f":spades: Blackjack: Win! :spades:", value=f"{user.mention} won {amt} cherries with a {len(player_cards)} card blackjack! New balance is {balance + amt} cherries", inline=False)
 			else:
-				embed_var.add_field(name=f":spades: Blackjack: Win! :spades:", value=f"{user.mention} won {amt} cherries! New balance is {balance + amt} cherries", inline=False)
+				embed.add_field(name=f":spades: Blackjack: Win! :spades:", value=f"{user.mention} won {amt} cherries! New balance is {balance + amt} cherries", inline=False)
 			logger.debug(f"{user} gained {amt} cherries for new balance of {balance + amt}")
 			economy.set_balance(user, balance + amt)
 			logger.info(f"Finished blackjack game: {user} won {amt} cherries")
 		elif state == consts.Blackjack_State.LOSE:
 			if dealer_hand_total == 21 and len(dealer_cards) in [2,5]:
-				embed_var.add_field(name=f":spades: Blackjack: Loss :spades:", value=f"{user.mention} lost {amt} cherries against a {len(player_cards)} card blackjack. New balance is {balance - amt} cherries", inline=False)
+				embed.add_field(name=f":spades: Blackjack: Loss :spades:", value=f"{user.mention} lost {amt} cherries against a {len(player_cards)} card blackjack. New balance is {balance - amt} cherries", inline=False)
 			else:
-				embed_var.add_field(name=f":spades: Blackjack: Loss :spades:", value=f"{user.mention} lost {amt} cherries. New balance is {balance - amt} cherries", inline=False)
+				embed.add_field(name=f":spades: Blackjack: Loss :spades:", value=f"{user.mention} lost {amt} cherries. New balance is {balance - amt} cherries", inline=False)
 			logger.debug(f"{user} lost {amt} cherries for new balance of {balance - amt}")
 			economy.set_balance(user, balance - amt)
 			logger.info(f"Finished blackjack game: {user} lost {amt} cherries")
 		else:
-			embed_var.add_field(name=f":spades: Blackjack: Tie :spades:", value=f"{user.mention} tied with {self.bot.mention}. You got your cherries back.", inline=False)
+			embed.add_field(name=f":spades: Blackjack: Tie :spades:", value=f"{user.mention} tied with {self.bot.mention}. You got your cherries back.", inline=False)
 			logger.info(f"Finished blackjack game: {user} tied with dealer")
 
-		embed_var.add_field(name=f"{user}", value=f"{display_cards(player_cards)} = {player_hand_total}", inline=False)
-		embed_var.add_field(name=f"Dealer", value=f"{display_cards(dealer_cards)} = {dealer_hand_total}", inline=False)
-		await msg.edit(embed=embed_var)
+		embed.add_field(name=f"{user}", value=f"{display_cards(player_cards)} = {player_hand_total}", inline=False)
+		embed.add_field(name=f"Dealer", value=f"{display_cards(dealer_cards)} = {dealer_hand_total}", inline=False)
+		await msg.edit(embed=embed)
 		await msg.clear_reactions()
 
 """
